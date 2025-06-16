@@ -1,4 +1,4 @@
-# Projeto de Microserviços: Sistema de Agendamento de Recursos
+# Projeto de Microserviços - Otávio Matheus Liberato
 
 Este projeto representa uma arquitetura de microserviços desenvolvida para gerenciar agendamentos de ambientes. A solução é construída sobre o ecossistema Spring Boot, orquestrada com Docker Compose, e integra um barramento de mensagens RabbitMQ para comunicação assíncrona.
 
