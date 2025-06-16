@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: salas
+            uri: http://sala-service:8080
+            predicates:
+              - Path=/salas/**
+            filters:
+              - RewritePath=/salas/(?<segment>.*), /${segment}
+          - id: reservas
+            uri: http://reserva-service:8080
+            predicates:
+              - Path=/reservas/**
+            filters:
+              - RewritePath=/reservas/(?<segment>.*), /${segment}
+          - id: usuarios
+            uri: http://usuario-service:8080
+            predicates:
+              - Path=/usuarios/**
+            filters:
+              - RewritePath=/usuarios/(?<segment>.*), /${segment}
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    urls:
+      - name: Sala Service
+        url: http://localhost:8080/salas/v3/api-docs
+      - name: Reserva Service
+        url: http://localhost:8080/reservas/v3/api-docs
+      - name: Usuario Service
+        url: http://localhost:8080/usuarios/v3/api-docs

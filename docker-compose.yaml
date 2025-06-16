@@ -1,0 +1,157 @@
+version: "3.8"
+
+x-healthcheck-mysql: &healthcheck-mysql
+  healthcheck:
+    test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 10s
+
+services:
+  gateway:
+    build:
+      context: ./spring-api-gateway
+      dockerfile: Dockerfile
+    container_name: main-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      reserva-service:
+        condition: service_started
+      sala-service:
+        condition: service_started
+      usuario-service:
+        condition: service_started
+    networks:
+      - network_reserva
+      - network_sala
+      - network_usuario
+
+  reserva-service:
+    build:
+      context: ./reserva
+      dockerfile: Dockerfile
+    container_name: reserva-app
+    environment:
+      DB_HOST: db_reserva
+      DB_NAME: reserva_db
+      DB_USER: root
+      DB_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      db_reserva:
+        condition: service_healthy
+    networks:
+      - network_reserva
+      - network_messaging
+
+  db_reserva:
+    image: mysql:8.0
+    container_name: db_reserva
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: reserva_db
+    networks:
+      - network_reserva
+    volumes:
+      - reserva_db_data:/var/lib/mysql
+    <<: *healthcheck-mysql
+
+  sala-service:
+    build:
+      context: ./sala
+      dockerfile: Dockerfile
+    container_name: sala-app
+    environment:
+      DB_HOST: db_sala
+      DB_NAME: sala_db
+      DB_USER: root
+      DB_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      db_sala:
+        condition: service_healthy
+    networks:
+      - network_sala
+      - network_messaging
+
+  db_sala:
+    image: mysql:8.0
+    container_name: db_sala
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sala_db
+    networks:
+      - network_sala
+    volumes:
+      - sala_db_data:/var/lib/mysql
+    <<: *healthcheck-mysql
+
+  usuario-service:
+    build:
+      context: ./usuario
+      dockerfile: Dockerfile
+    container_name: usuario-app
+    environment:
+      DB_HOST: db_usuario
+      DB_NAME: usuario_db
+      DB_USER: root
+      DB_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      db_usuario:
+        condition: service_healthy
+    networks:
+      - network_usuario
+      - network_messaging
+
+  db_usuario:
+    image: mysql:8.0
+    container_name: db_usuario
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: usuario_db
+    networks:
+      - network_usuario
+    volumes:
+      - usuario_db_data:/var/lib/mysql
+    <<: *healthcheck-mysql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: message-broker-rabbitmq
+    restart: always
+    ports:
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - network_messaging
+
+networks:
+  network_reserva:
+    driver: bridge
+  network_sala:
+    driver: bridge
+  network_usuario:
+    driver: bridge
+  network_messaging:
+    driver: bridge
+
+volumes:
+  reserva_db_data:
+  sala_db_data:
+  usuario_db_data:
+  rabbitmq_data:
